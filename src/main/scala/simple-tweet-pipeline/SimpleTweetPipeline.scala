@@ -1,11 +1,10 @@
-import java.util.Properties
-
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.{Flow, Sink, Source}
-import org.apache.kafka.clients.consumer.KafkaConsumer
-
-import scala.collection.JavaConversions._
+import akka.stream.scaladsl.{Sink, Source}
+import com.softwaremill.react.kafka.KafkaMessages._
+import org.apache.kafka.common.serialization.{StringSerializer, StringDeserializer}
+import com.softwaremill.react.kafka.{ProducerMessage, ConsumerProperties, ProducerProperties, ReactiveKafka}
+import org.reactivestreams.{ Publisher, Subscriber }
 
 /*
   =============================
@@ -24,38 +23,30 @@ import scala.collection.JavaConversions._
   =============================
 */
 object SimpleTweetPipeline extends App {
-  implicit val system = ActorSystem("SimpleTweetPipeline")
+  implicit val system = ActorSystem("ReactiveSimpleTweetPipeline")
   implicit val materializer = ActorMaterializer()
 
-  // Setting up props for Kafka Consumer
-  val props = new Properties()
-  props.put("bootstrap.servers", "localhost:9092")
-  props.put("group.id", "simple-tweet-consumer")
-  props.put("enable.auto.commit", "true")
-  props.put("auto.commit.interval.ms", "1000")
-  props.put("session.timeout.ms", "30000")
-  props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer")
-  props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer")
+  val kafka = new ReactiveKafka()
 
-  val consumer = new KafkaConsumer[String, String](props)
-  consumer.subscribe(List("simple-tweet-pipeline")) // Kafka-Consumer listening from the topic
+  // Source is ActorPublisher, which must use StringConsumerRecord
+  val simpleTweetPublisher: Publisher[StringConsumerRecord] = kafka.consume(ConsumerProperties(
+    bootstrapServers = "localhost:9092",
+    topic = "reactive-simple-tweet-pipeline",
+    groupId = "reactive-simple-tweet-consumer",
+    valueDeserializer = new StringDeserializer()
+  ))
 
-  // Source in this example is an ActorPublisher from twitter-pipeline project
-  val simpleTweetSource = Source.actorPublisher[String](TweetPublisher.props(consumer))
-  // Sink just prints to console, ActorSubscriber is not used
-  val consoleSink = Sink.foreach[Tweet](tweet => {
-    println("CONSOLE SINK: " + tweet.text)
-    Thread.sleep(1000) // simulate how akka-streams handles Backpressure
-  })
+  // Sink is ActorSubscriber, which must use StringProducerMessage
+  val simpleTweetSubscriber: Subscriber[StringProducerMessage] = kafka.publish(ProducerProperties(
+    bootstrapServers = "localhost:9092",
+    topic = "reactive-simple-tweet-pipeline",
+    valueSerializer = new StringSerializer()
+  ))
 
-  // starting the stream
-  println("simple-tweet data-pipeline starting...")
-  val stream = Flow[String]
-    // transform text to upper-case
-    .map(text => text.toUpperCase)
-    // transforming text to SimpleTweet
-    .map(text => new SimpleTweet(text))
-    // connecting to the sink
-    .to(consoleSink)
-    .runWith(simpleTweetSource)
+  Source.fromPublisher(simpleTweetPublisher)
+    .map(m => m.value().toUpperCase) // make raw data upper-cased
+    .map(text => SimpleTweet(text)) // convert to SimpleTweet object
+    .map(st => ProducerMessage(st.text)) // convert back to ProducerMessage
+    .to(Sink.fromSubscriber(simpleTweetSubscriber))
+    .run()
 }
