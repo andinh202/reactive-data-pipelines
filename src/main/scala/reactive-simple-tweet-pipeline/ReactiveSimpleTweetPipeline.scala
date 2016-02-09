@@ -8,7 +8,7 @@ import org.reactivestreams.{ Publisher, Subscriber }
 
 /*
   =============================
-  PIPELINE DEMO OVERVIEW
+  REACTIVE PIPELINE DEMO OVERVIEW
     1. Use the Kafka Producer through the command line to send messages to the lowercase Kafka Topic
     2. ActorPublisher uses Kafka Consumer to read from Topic and push to First Stream
     3. First Stream capitalizes messages and transforms to StringProducerMessage
@@ -19,9 +19,14 @@ import org.reactivestreams.{ Publisher, Subscriber }
   Kafka Topic --> ActorPub --> First Stream --> ActorSub --> Kafka Topic --> ActorPub --> Second Stream --> Console Sink
   =============================
 */
-object SimpleTweetPipeline extends App {
+object ReactiveSimpleTweetPipeline extends App {
   implicit val system = ActorSystem("ReactiveSimpleTweetPipeline")
   implicit val materializer = ActorMaterializer()
+
+  val LC_TOPIC = "reactive-simple-tweet-lowercase"
+  val UC_TOPIC = "reactive-simple-tweet-uppercase"
+  val LC_GROUP_ID = "reactive-simple-tweet-lc-consumer"
+  val UC_GROUP_ID = "reactive-simple-tweet-uc-consumer"
 
   // instantiate reactive kafka
   val kafka = new ReactiveKafka()
@@ -33,8 +38,8 @@ object SimpleTweetPipeline extends App {
   // ActorPublisher encapsulates Kafka Consumer to read from topic
   val lowerCasePublisher: Publisher[StringConsumerRecord] = kafka.consume(ConsumerProperties(
     bootstrapServers = "localhost:9092",
-    topic = "reactive-simple-tweet-lowercase", // Kafka Topic read by consumer
-    groupId = "reactive-simple-tweet-lc-consumer",
+    topic = LC_TOPIC, // Kafka Topic read by consumer
+    groupId = LC_GROUP_ID,
     valueDeserializer = new StringDeserializer()
   ))
 
@@ -43,7 +48,7 @@ object SimpleTweetPipeline extends App {
   // ActorSubscriber encapsulates Kafka Producer which publishes to topic
   val upperCaseSubscriber: Subscriber[StringProducerMessage] = kafka.publish(ProducerProperties(
     bootstrapServers = "localhost:9092",
-    topic = "reactive-simple-tweet-uppercase", // Kafka Topic published by producer
+    topic = UC_TOPIC, // Kafka Topic published by producer
     valueSerializer = new StringSerializer()
   ))
 
@@ -61,8 +66,8 @@ object SimpleTweetPipeline extends App {
   // ActorPublisher encapsulates Kafka Consumer to read from topic
   val upperCasePublisher: Publisher[StringConsumerRecord] = kafka.consume(ConsumerProperties(
     bootstrapServers = "localhost:9092",
-    topic = "reactive-simple-tweet-uppercase", // Kafka Topic read by consumer
-    groupId = "reactive-simple-tweet-uc-consumer",
+    topic = UC_TOPIC, // Kafka Topic read by consumer
+    groupId = UC_GROUP_ID,
     valueDeserializer = new StringDeserializer()
   ))
 
