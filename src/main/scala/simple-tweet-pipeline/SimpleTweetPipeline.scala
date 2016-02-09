@@ -9,44 +9,76 @@ import org.reactivestreams.{ Publisher, Subscriber }
 /*
   =============================
   PIPELINE DEMO OVERVIEW
-    1. Pull messages from Kafka Consumer into Akka ActorPublisher
-    2. Push Messages through an Akka Stream/Runnable Flow and undergo some transformation (Source)
-    3. Subscriber needs to read the messages from the Akka Stream/Runnable Flow (Sink)
-    4. Subscriber/Sink dumps the transformed to the console
-  =============================
-  =============================
-  OPTIONS FOR IMPLEMENTATION
-    FLOW: ActorPublisher(Source) ---> Stream ---> ActorSubscriber(Sink)
-    FLOW: ActorPublisher(Source) ---> Stream ---> Sink.actorRef(Sink)  *** IN USE BELOW
-    FLOW: Source.actorRef(Source) ---> Stream ---> Sink.actorRef(Sink) // Built in simple source and sink
-    FLOW: Source.actorRef(Source) ---> Stream ---> ActorSubscriber(Sink)
+    1. Use the Kafka Producer through the command line to send messages to the lowercase Kafka Topic
+    2. ActorPublisher uses Kafka Consumer to read from Topic and push to First Stream
+    3. First Stream capitalizes messages and transforms to StringProducerMessage
+    4. ActorSubscriber reads from stream and uses Kafka Producer to push to uppercase Kafka Topic
+    5. ActorPublisher uses Kafka Consumer to read from uppercase Kafka Topic and push to Second Stream
+    6. Second Stream transforms from StringConsumerRecord to SimpleTweet
+    7. Console Sink reads from Second Stream and dumps output to console
+  Kafka Topic --> ActorPub --> First Stream --> ActorSub --> Kafka Topic --> ActorPub --> Second Stream --> Console Sink
   =============================
 */
 object SimpleTweetPipeline extends App {
   implicit val system = ActorSystem("ReactiveSimpleTweetPipeline")
   implicit val materializer = ActorMaterializer()
 
+  // instantiate reactive kafka
   val kafka = new ReactiveKafka()
 
-  // Source is ActorPublisher, which must use StringConsumerRecord
-  val simpleTweetPublisher: Publisher[StringConsumerRecord] = kafka.consume(ConsumerProperties(
+  // 1 : done on command line through kakfa producer
+
+  // 2
+  // Source of Stream is ActorPublisher, which must use StringConsumerRecord
+  // ActorPublisher encapsulates Kafka Consumer to read from topic
+  val lowerCasePublisher: Publisher[StringConsumerRecord] = kafka.consume(ConsumerProperties(
     bootstrapServers = "localhost:9092",
-    topic = "reactive-simple-tweet-pipeline",
-    groupId = "reactive-simple-tweet-consumer",
+    topic = "reactive-simple-tweet-lowercase", // Kafka Topic read by consumer
+    groupId = "reactive-simple-tweet-lc-consumer",
     valueDeserializer = new StringDeserializer()
   ))
 
-  // Sink is ActorSubscriber, which must use StringProducerMessage
-  val simpleTweetSubscriber: Subscriber[StringProducerMessage] = kafka.publish(ProducerProperties(
+  // 4
+  // Sink of Stream is ActorSubscriber, which must use StringProducerMessage
+  // ActorSubscriber encapsulates Kafka Producer which publishes to topic
+  val upperCaseSubscriber: Subscriber[StringProducerMessage] = kafka.publish(ProducerProperties(
     bootstrapServers = "localhost:9092",
-    topic = "reactive-simple-tweet-pipeline",
+    topic = "reactive-simple-tweet-uppercase", // Kafka Topic published by producer
     valueSerializer = new StringSerializer()
   ))
 
-  Source.fromPublisher(simpleTweetPublisher)
+  // 3
+  // First Stream which transforms lowercase SimpleTweets to uppercase
+  // Source: lowerCasePublisher  Sink: upperCaseSubscriber
+  val firstStream = Source.fromPublisher(lowerCasePublisher)
     .map(m => m.value().toUpperCase) // make raw data upper-cased
-    .map(text => SimpleTweet(text)) // convert to SimpleTweet object
-    .map(st => ProducerMessage(st.text)) // convert back to ProducerMessage
-    .to(Sink.fromSubscriber(simpleTweetSubscriber))
-    .run()
+    .map(m => ProducerMessage(m)) // convert to ProducerMessage for ActorSubscriber
+    .to(Sink.fromSubscriber(upperCaseSubscriber))
+  firstStream.run()
+
+  // 5
+  // Source is ActorPublisher, which must use StringConsumerRecord
+  // ActorPublisher encapsulates Kafka Consumer to read from topic
+  val upperCasePublisher: Publisher[StringConsumerRecord] = kafka.consume(ConsumerProperties(
+    bootstrapServers = "localhost:9092",
+    topic = "reactive-simple-tweet-uppercase", // Kafka Topic read by consumer
+    groupId = "reactive-simple-tweet-uc-consumer",
+    valueDeserializer = new StringDeserializer()
+  ))
+
+  // 7
+  // Sink of Stream that dumps to console, no ActorSubscriber
+  val consoleSink = Sink.foreach[Tweet](tweet => {
+    println("CONSOLE SINK: " + tweet.text)
+    Thread.sleep(1000) // simulate how akka-streams handles Backpressure
+  })
+
+  // 6
+  // Final Stream which converts from StringConsumerRecord to SimpleTweet
+  // Source: upperCasePublisher  Sink: consoleSink
+  val secondStream = Source.fromPublisher(upperCasePublisher)
+    .map(m => SimpleTweet(m.value())) // convert to SimpleTweet object
+    .to(consoleSink)
+  secondStream.run()
+
 }
