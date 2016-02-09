@@ -43,7 +43,7 @@ object Config {
 
     // Setting up HBC client builder
     val hosebirdClient = new ClientBuilder()
-      .name("Hosebird-Client-Twitter-Pipeline")
+      .name("Hosebird-Client-Reactive-Twitter-Pipeline")
       .hosts(hosebirdHosts)
       .authentication(hosebirdAuth)
       .endpoint(hosebirdEndpoint)
@@ -52,40 +52,5 @@ object Config {
       .build()
 
     hosebirdClient
-  }
-
-  /*
-    Handles all the Kafka Consumer config and setup
-   */
-  def kafkaConsumerPropSetup: Properties = {
-    // Setting up props for Kafka Consumer
-    val consProps = new Properties()
-    consProps.put("bootstrap.servers", "localhost:9092")
-    consProps.put("group.id", "twitter-pipeline-consumer")
-    consProps.put("enable.auto.commit", "true")
-    consProps.put("auto.commit.interval.ms", "1000")
-    consProps.put("session.timeout.ms", "30000")
-    consProps.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer")
-    consProps.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer")
-
-    consProps
-  }
-
-  /*
-    Handles all the Kafka Producer Config and Setup
-   */
-  def kafkaProducerPropSetup: Properties = {
-    // Setting up props for Kafka Producer
-    val prodProps = new Properties()
-    prodProps.put("bootstrap.servers", "localhost:9092")
-    prodProps.put("acks", "all")
-    prodProps.put("retries", "0")
-    prodProps.put("batch.size", "16384")
-    prodProps.put("linger.ms", "1")
-    prodProps.put("buffer.memory", "33554432")
-    prodProps.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer")
-    prodProps.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
-
-    prodProps
   }
 }

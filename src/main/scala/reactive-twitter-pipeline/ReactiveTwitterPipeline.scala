@@ -1,17 +1,12 @@
 import akka.actor.ActorSystem
-import akka.serialization.ByteArraySerializer
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.{Flow, Sink, Source}
-import com.softwaremill.react.kafka.KafkaMessages.{StringProducerMessage, StringConsumerRecord}
-import com.softwaremill.react.kafka.{ProducerMessage, ProducerProperties, ConsumerProperties, ReactiveKafka}
-import org.apache.kafka.clients.consumer.KafkaConsumer
-import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
-import org.apache.kafka.common.serialization.{StringSerializer, StringDeserializer}
+import akka.stream.scaladsl.{Sink, Source}
+import com.softwaremill.react.kafka.{ConsumerProperties, ProducerMessage, ProducerProperties, ReactiveKafka}
+import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.kafka.common.serialization.{ByteArrayDeserializer, ByteArraySerializer, StringDeserializer, StringSerializer}
 import org.json4s._
 import org.json4s.native.JsonMethods._
-import org.reactivestreams.{Subscriber, Publisher}
-
-import scala.collection.JavaConversions._
+import org.reactivestreams.{Publisher, Subscriber}
 
 /*
   =============================
@@ -33,8 +28,8 @@ object ReactiveTwitterPipeline extends App {
   // Kafka Topics and Server
   val RAW_TOPIC = "reactive-twitter-pipeline-raw"
   val TOPIC = "reactive-twitter-pipeline"
-  val RAW_GROUP_ID = "twitter-pipeline-consumer-raw"
-  val GROUP_ID = "twitter-pipeline-consumer"
+  val RAW_GROUP_ID = "reactive-twitter-pipeline-consumer-raw"
+  val GROUP_ID = "reactive-twitter-pipeline-consumer"
   val SERVER = "localhost:9092"
 
   // instantiate reactive kafka
@@ -56,7 +51,7 @@ object ReactiveTwitterPipeline extends App {
           bootstrapServers = SERVER,
           topic = RAW_TOPIC,
           valueSerializer = new StringSerializer()
-        ))
+        )).onNext(ProducerMessage(tweet))
       }
       hosebirdClient.stop() // Closes connection with Twitter HBC stream
     }
@@ -66,8 +61,7 @@ object ReactiveTwitterPipeline extends App {
   hbcTwitterStream.start() // Starts the thread which invokes run()
 
   // Source in this example is an ActorPublisher publishing raw tweet json
-  //val rawTweetSource = Source.actorPublisher[String](TweetPublisher.props(rawTwitterConsumer))
-  val rawTweetPublisher: Publisher[StringConsumerRecord] = kafka.consume(ConsumerProperties(
+  val rawTweetPublisher: Publisher[ConsumerRecord[Array[Byte], String]] = kafka.consume(ConsumerProperties(
     bootstrapServers = SERVER,
     topic = RAW_TOPIC,
     groupId = RAW_GROUP_ID,
@@ -75,28 +69,27 @@ object ReactiveTwitterPipeline extends App {
   ))
 
   // ActorSubscriber is the sink that uses Kafka Producer to push back into Kafka Topic
-  val rawTweetSubscriber: Subscriber[ProducerMessage[String, Array[Byte]]] = kafka.publish(ProducerProperties(
+  val richTweetSubscriber: Subscriber[ProducerMessage[Array[Byte], Array[Byte]]] = kafka.publish(ProducerProperties(
     bootstrapServers = SERVER,
     topic = TOPIC,
-    valueSerializer = new StringSerializer()
+    valueSerializer = new ByteArraySerializer()
   ))
 
   // Akka Stream/Flow: ActorPublisher ---> raw JSON ---> Tweet ---> Array[Byte] ---> ActorSubscriber
   val rawStream = Source.fromPublisher(rawTweetPublisher)
     .map(m => parse(m.value()))
-    .map(json => Util.extractTweetJSONFields(json))
-    .map(rt => Util.serialize(rt))
+    .map(json => Util.extractTweetFields(json))
+    .map(tweet => Util.serialize[Tweet](tweet))
     .map(m => ProducerMessage(m)) // convert to ProducerMessage for ActorSubscriber
-    .to(Sink.fromSubscriber(rawTweetSubscriber))
+    .to(Sink.fromSubscriber(richTweetSubscriber))
   rawStream.run()
 
   // Source in this example  is an ActorPublisher publishing transformed tweet json
-  //val richTweetPublisher = Source.actorPublisher[Array[Byte]](TweetPublisher.props(twitterConsumer))
-  val richTweetPublisher: Publisher[StringConsumerRecord] = kafka.consume(ConsumerProperties(
+  val richTweetPublisher: Publisher[ConsumerRecord[Array[Byte], Array[Byte]]] = kafka.consume(ConsumerProperties(
     bootstrapServers = SERVER,
     topic = TOPIC,
     groupId = GROUP_ID,
-    valueDeserializer = new StringDeserializer()
+    valueDeserializer = new ByteArrayDeserializer()
   ))
   // Sink is simply the console
   val consoleSink = Sink.foreach[Tweet](tweet => {
@@ -106,7 +99,7 @@ object ReactiveTwitterPipeline extends App {
 
   // Akka Stream/Flow: ActorPublisher ---> Array[Byte] ---> Tweet ---> ConsoleSink
   val transformedStream = Source.fromPublisher(richTweetPublisher)
-    .map(bytes => Util.deserialize[Tweet](bytes))
+    .map(bytes => Util.deserialize[Tweet](bytes.value()))
     .to(consoleSink)
   transformedStream.run()
 }
