@@ -1,7 +1,10 @@
 import java.util.Properties
 
 import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.stream.ActorMaterializer
+import com.softwaremill.react.kafka.{ConsumerProperties, ReactiveKafka}
 import org.apache.kafka.clients.consumer.KafkaConsumer
+import org.apache.kafka.common.serialization.StringDeserializer
 
 import scala.collection.JavaConversions._
 
@@ -16,7 +19,27 @@ import scala.collection.JavaConversions._
 */
 object SimpleActorPipeline extends App {
   // Akka Steam actor setup and creation
-  val system = ActorSystem("SimpleActorPipeline")
+  implicit val materializer = ActorMaterializer()
+  implicit val system = ActorSystem("ReactiveSimpleActorPipeline")
+
+  val kafka = new ReactiveKafka()
+
+  // consumer
+  val consumerProperties = ConsumerProperties(
+    bootstrapServers = "localhost:9092",
+    topic = "reactive-simple-actor-pipeline",
+    groupId = "reactive-simple-actor-consumer",
+    valueDeserializer = new StringDeserializer()
+  )
+
+  val consumerActorProps: Props = kafka.consumerActorProps(consumerProperties)
+  val publisherActor: ActorRef = system.actorOf(consumerActorProps)
+  //publisherActor.tell(msg) /*What do I DO????
+
+
+
+
+  /**
   val simpleActor = system.actorOf(Props[SimpleActor], "SimpleActor")
   val POLL_TIME = 100 // time in ms
 
@@ -40,4 +63,5 @@ object SimpleActorPipeline extends App {
       simpleActor.tell(SimpleMessage(record.value), ActorRef.noSender)
     }
   }
+    */
 }

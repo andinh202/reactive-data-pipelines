@@ -93,7 +93,7 @@ object ReactiveTwitterPipeline extends App {
   ))
   // Sink is simply the console
   val consoleSink = Sink.foreach[Tweet](tweet => {
-    println("============================================")
+    println("=========================================================================")
     println(tweet)
   })
 
