@@ -75,7 +75,7 @@ object ReactiveTwitterPipeline extends App {
   ))
 
   // ActorSubscriber is the sink that uses Kafka Producer to push back into Kafka Topic
-  val rawTweetSubscriber: Subscriber[StringProducerMessage] = kafka.publish(ProducerProperties(
+  val rawTweetSubscriber: Subscriber[ProducerMessage[String, Array[Byte]]] = kafka.publish(ProducerProperties(
     bootstrapServers = SERVER,
     topic = TOPIC,
     valueSerializer = new StringSerializer()
@@ -83,6 +83,9 @@ object ReactiveTwitterPipeline extends App {
 
   // Akka Stream/Flow: ActorPublisher ---> raw JSON ---> Tweet ---> Array[Byte] ---> ActorSubscriber
   val rawStream = Source.fromPublisher(rawTweetPublisher)
+    .map(m => parse(m.value()))
+    .map(json => Util.extractTweetJSONFields(json))
+    .map(rt => Util.serialize(rt))
     .map(m => ProducerMessage(m)) // convert to ProducerMessage for ActorSubscriber
     .to(Sink.fromSubscriber(rawTweetSubscriber))
   rawStream.run()
@@ -103,8 +106,7 @@ object ReactiveTwitterPipeline extends App {
 
   // Akka Stream/Flow: ActorPublisher ---> Array[Byte] ---> Tweet ---> ConsoleSink
   val transformedStream = Source.fromPublisher(richTweetPublisher)
-    .map(m => parse(m.value()))
-    .map(json => Util.extractTweetJSONFields(json))
+    .map(bytes => Util.deserialize[Tweet](bytes))
     .to(consoleSink)
   transformedStream.run()
 }
