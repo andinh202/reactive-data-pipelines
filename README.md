@@ -1,6 +1,6 @@
 # Reactive Data Pipelines
 
-Reactive version of the [data-pipelines](//git.rsglab.com/bware/data-pipelines) repo
+Reactive version of the `data-pipelines` [project](//git.rsglab.com/bware/data-pipelines).
 
 Repo containing 3 data pipeline mini-projects:
 * Reactive Simple Actor Pipeline
