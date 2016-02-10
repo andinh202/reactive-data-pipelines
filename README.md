@@ -3,7 +3,7 @@
 Reactive version of the `data-pipelines` [project](//git.rsglab.com/bware/data-pipelines).
 
 ## Data Pipelines
-* [Reactive Simple Actor Pipeline](//git.rsglab.com/bware/reactive-data-pipelines/blob/master/src/main/scala/simple-actor-pipeline/SimpleActorPipeline.scala)
+* [Reactive Simple Actor Pipeline](//git.rsglab.com/bware/reactive-data-pipelines/blob/master/src/main/scala/reactive-simple-actor-pipeline/ReactiveSimpleActorPipeline.scala)
 * [Reactive Simple Tweet Pipeline](//git.rsglab.com/bware/reactive-data-pipelines/blob/master/src/main/scala/reactive-simple-tweet-pipeline/ReactiveSimpleTweetPipeline.scala)
 * [Reactive Twitter Pipeline](//git.rsglab.com/bware/reactive-data-pipelines/blob/master/src/main/scala/reactive-twitter-pipeline/ReactiveTwitterPipeline.scala)
 
@@ -32,13 +32,13 @@ Reactive version of the `data-pipelines` [project](//git.rsglab.com/bware/data-p
 ### Overview
 * Publish messages to Kafka Topic through command-line Kafka Producer
   *  `bin/kafka-console-producer.sh --broker-list localhost:9092 --topic topic_name`
-* Push messages to an Akka Actor from the Kafka Consumer (which polls from Kafka Topic)
-* Messages go through a actor transition and undergo transformation
-* Final actor dumps output to console
+* Read messages using Kakfa Consumer encapsulated by Actor Publisher
+* Messages go through stream where they are capitalized and stored as `SimpleMessage`
+* Console Sink dumps `SimpleMessage` to console
 
-`SimpleActor --> SimpleProcessor --> SimplePrinter --> Dumps to console`
+`KafkaTopic --> ActorPub --> Stream --> ConsoleSink`
 
-**Note**: Make sure the kakfa topic in `SimpleActorPipeline.scala` matches the one you created during **Getting Started** and for the command line Kafka Producer
+**Note**: Make sure the kakfa topic in `ReactiveSimpleActorPipeline.scala` matches the one you created during **Getting Started** and for the command line Kafka Producer
 
 Run through `ReactiveSimpleActorPipeline.scala`
 
@@ -47,10 +47,10 @@ Run through `ReactiveSimpleActorPipeline.scala`
 * Use the Kafka Producer through the command line to send messages to the lowercase Kafka Topic
   *  `bin/kafka-console-producer.sh --broker-list localhost:9092 --topic topic_name`
 * ActorPublisher uses Kafka Consumer to read from Topic and push to First Stream
-* First Stream capitalizes messages and transforms to StringProducerMessage
+* First Stream capitalizes messages and transforms to `StringProducerMessage`
 * ActorSubscriber reads from stream and uses Kafka Producer to push to uppercase Kafka Topic
 * ActorPublisher uses Kafka Consumer to read from uppercase Kafka Topic and push to Second Stream
-* Second Stream transforms from StringConsumerRecord to SimpleTweet
+* Second Stream transforms from `StringConsumerRecord` to `SimpleTweet`
 * Console Sink reads from Second Stream and dumps output to console
 
 `KafkaTopic --> ActorPub --> FirstStream --> ActorSub --> KafkaTopic --> ActorPub --> SecondStream --> ConsoleSink`
