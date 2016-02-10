@@ -1,11 +1,11 @@
 # Reactive Data Pipelines
 
-Reactive version of the [data-pipelines](//git.rsglab.com/bware/data-pipelines) repo
+Reactive version of the `data-pipelines` [project](//git.rsglab.com/bware/data-pipelines).
 
-Repo containing 3 data pipeline mini-projects:
-* Reactive Simple Actor Pipeline
-* Reactive Simple Tweet Pipeline
-* Reactive Twitter Pipeline
+## Data Pipelines
+* [Reactive Simple Actor Pipeline](//git.rsglab.com/bware/reactive-data-pipelines/blob/master/src/main/scala/simple-actor-pipeline/SimpleActorPipeline.scala)
+* [Reactive Simple Tweet Pipeline](//git.rsglab.com/bware/reactive-data-pipelines/blob/master/src/main/scala/reactive-simple-tweet-pipeline/ReactiveSimpleTweetPipeline.scala)
+* [Reactive Twitter Pipeline](//git.rsglab.com/bware/reactive-data-pipelines/blob/master/src/main/scala/reactive-twitter-pipeline/ReactiveTwitterPipeline.scala)
 
 ## Technologies
 * [Scala](//www.scala-lang.org/download)
