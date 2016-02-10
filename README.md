@@ -72,7 +72,7 @@ In `Config.scala` update your Twitter Authentication Credentials
 * Pull raw json tweets from Kafka Consumer and store in Akka Publisher
 * Akka Publisher sends raw json through raw stream to transform/serialize to `Tweet` object
 * Akka Subscriber takes serialized `Tweet` object and uses Kafka Producer to push to another Kafka Topic
-* Kafka Consumer inside Akka Publisher pulls from topic and sends the serialized `Tweet` through transformed stream
+* Kafka Consumer inside Akka Publisher pulls from topic and sends serialized `Tweet` through transformed stream
 * Final Stream deserializes the `Tweet` object
 * Sink reads from Final Stream and dumps to console
 
