@@ -16,7 +16,8 @@ import org.reactivestreams.{ Publisher, Subscriber }
     5. ActorPublisher uses Kafka Consumer to read from uppercase Kafka Topic and push to Second Stream
     6. Second Stream transforms from StringConsumerRecord to SimpleTweet
     7. Console Sink reads from Second Stream and dumps output to console
-  Kafka Topic --> ActorPub --> First Stream --> ActorSub --> Kafka Topic --> ActorPub --> Second Stream --> Console Sink
+
+  KafkaTopic --> ActorPub --> FirstStream --> ActorSub --> KafkaTopic --> ActorPub --> SecondStream --> ConsoleSink
   =============================
 */
 object ReactiveSimpleTweetPipeline extends App {

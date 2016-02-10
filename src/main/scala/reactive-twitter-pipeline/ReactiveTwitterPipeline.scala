@@ -17,9 +17,12 @@ import org.reactivestreams.{Publisher, Subscriber}
     3. Pull raw json tweets from Kafka Consumer and store in Akka Publisher
     4. Akka Publisher sends raw json through first stream to transform/serialize to Tweet object
     5. Akka Subscriber takes serialized Tweet object and uses Kafka Producer to push to another Kafka Topic
-    6. Kafka Consumer inside Akka Publisher pulls from topic and sends the serialized tweet through final stream
+    6. Kafka Consumer inside Akka Publisher pulls from topic and sends the serialized tweet through transformed stream
     7. Final Stream deserializes the Tweet object
-    8. Sink reads from Final Stream and dumps to console sink
+    8. Sink reads from Final Stream and dumps to console
+
+  TwitterHBC --> KafkaProd --> KafkaTopic --> ActorPub --> RawStream --> ActorSub --> KafkaTopic --> ActorPub -->
+    TransformedStream --> ConsoleSink
   =============================
 */
 object ReactiveTwitterPipeline extends App {
