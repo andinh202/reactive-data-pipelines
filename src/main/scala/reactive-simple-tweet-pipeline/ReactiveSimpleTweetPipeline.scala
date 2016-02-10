@@ -23,10 +23,12 @@ object ReactiveSimpleTweetPipeline extends App {
   implicit val system = ActorSystem("ReactiveSimpleTweetPipeline")
   implicit val materializer = ActorMaterializer()
 
+  // Kafka Topics and Server
   val LC_TOPIC = "reactive-simple-tweet-lowercase"
   val UC_TOPIC = "reactive-simple-tweet-uppercase"
   val LC_GROUP_ID = "reactive-simple-tweet-lc-consumer"
   val UC_GROUP_ID = "reactive-simple-tweet-uc-consumer"
+  val SERVER = "localhost:9092"
 
   // instantiate reactive kafka
   val kafka = new ReactiveKafka()
@@ -37,7 +39,7 @@ object ReactiveSimpleTweetPipeline extends App {
   // Source of Stream is ActorPublisher, which must use StringConsumerRecord
   // ActorPublisher encapsulates Kafka Consumer to read from topic
   val lowerCasePublisher: Publisher[StringConsumerRecord] = kafka.consume(ConsumerProperties(
-    bootstrapServers = "localhost:9092",
+    bootstrapServers = SERVER,
     topic = LC_TOPIC, // Kafka Topic read by consumer
     groupId = LC_GROUP_ID,
     valueDeserializer = new StringDeserializer()
@@ -47,7 +49,7 @@ object ReactiveSimpleTweetPipeline extends App {
   // Sink of Stream is ActorSubscriber, which must use StringProducerMessage
   // ActorSubscriber encapsulates Kafka Producer which publishes to topic
   val upperCaseSubscriber: Subscriber[StringProducerMessage] = kafka.publish(ProducerProperties(
-    bootstrapServers = "localhost:9092",
+    bootstrapServers = SERVER,
     topic = UC_TOPIC, // Kafka Topic published by producer
     valueSerializer = new StringSerializer()
   ))
@@ -65,7 +67,7 @@ object ReactiveSimpleTweetPipeline extends App {
   // Source is ActorPublisher, which must use StringConsumerRecord
   // ActorPublisher encapsulates Kafka Consumer to read from topic
   val upperCasePublisher: Publisher[StringConsumerRecord] = kafka.consume(ConsumerProperties(
-    bootstrapServers = "localhost:9092",
+    bootstrapServers = SERVER,
     topic = UC_TOPIC, // Kafka Topic read by consumer
     groupId = UC_GROUP_ID,
     valueDeserializer = new StringDeserializer()

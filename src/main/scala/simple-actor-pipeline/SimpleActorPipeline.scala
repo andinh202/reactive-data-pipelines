@@ -18,9 +18,8 @@ import scala.collection.JavaConversions._
   =============================
 */
 object SimpleActorPipeline extends App {
-  // Akka Steam actor setup and creation
-  implicit val materializer = ActorMaterializer()
   implicit val system = ActorSystem("ReactiveSimpleActorPipeline")
+  implicit val materializer = ActorMaterializer()
 
   val kafka = new ReactiveKafka()
 
