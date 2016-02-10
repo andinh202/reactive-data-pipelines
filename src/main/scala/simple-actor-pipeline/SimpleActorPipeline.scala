@@ -18,21 +18,9 @@ object SimpleActorPipeline extends App {
   implicit val system = ActorSystem("ReactiveSimpleActorPipeline")
   implicit val materializer = ActorMaterializer()
 
-  val kafka = new ReactiveKafka()
-
-  // consumer
-  val consumerProperties = ConsumerProperties(
-    bootstrapServers = "localhost:9092",
-    topic = "reactive-simple-actor-pipeline",
-    groupId = "reactive-simple-actor-consumer",
-    valueDeserializer = new StringDeserializer()
-  )
-
-  val consumerActorProps: Props = kafka.consumerActorProps(consumerProperties)
-  val publisherActor: ActorRef = system.actorOf(consumerActorProps)
-  //publisherActor.tell(msg) /*What do I DO????
-
-
+  val simpleConsumerActor = system.actorOf(Props[SimpleConsumerActor], "SimpleConsumerActor")
+  println("simple-actor reactive-data-pipeline starting...")
+  println("======================================")
 
 
   /**

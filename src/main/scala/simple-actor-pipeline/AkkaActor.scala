@@ -1,10 +1,23 @@
 import akka.actor.{Props, Actor}
+import com.softwaremill.react.kafka.{ConsumerProperties, ReactiveKafka}
+import org.apache.kafka.common.serialization.StringDeserializer
 
 /*
-  Actor 1 in SimpleActorPipeline
+  Actor that reads uses Kafka Consumer to read data from Kafka Topic
 */
-class SimpleActor extends Actor {
-  val processor = context.system.actorOf(Props[SimpleProcessor], "SimpleProcessor")
+class SimpleConsumerActor extends Actor {
+  val processor = context.system.actorOf(Props[SimpleProcessorActor], "SimpleProcessor")
+
+  override def preStart = {
+    val kafka = new ReactiveKafka()
+
+    context.actorOf(kafka.consumerActorProps(ConsumerProperties(
+      bootstrapServers = "localhost:9092",
+      topic = "reactive-simple-actor-pipeline",
+      groupId = "reactive-simple-actor-consumer",
+      valueDeserializer = new StringDeserializer()
+    )))
+  }
 
   def receive = {
     case msg: SimpleMessage => processor ! msg
@@ -12,10 +25,10 @@ class SimpleActor extends Actor {
 }
 
 /*
-  Actor 2 in SimpleActorPipeline
+  Receives SimpleMessage from SimpleConsumerActor and capitalizes it
 */
-class SimpleProcessor extends Actor {
-  val printer = context.system.actorOf(Props[SimplePrinter], "SimplePrinter")
+class SimpleProcessorActor extends Actor {
+  val printer = context.system.actorOf(Props[SimplePrinterActor], "SimplePrinter")
 
   def receive = {
     case SimpleMessage(msg) => printer ! SimpleMessage(processMessage(msg)) // Send the current greeting back to the sender
@@ -27,9 +40,9 @@ class SimpleProcessor extends Actor {
 }
 
 /*
-  Actor 3 in SimpleActorPipeline
+  Receives SimpleMessage from SimpleProcessorActor and dumps to console
 */
-class SimplePrinter extends Actor {
+class SimplePrinterActor extends Actor {
   def receive = {
     case SimpleMessage(message) => println(message)
   }
