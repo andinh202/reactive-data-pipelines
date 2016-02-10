@@ -1,20 +1,17 @@
-import java.util.Properties
-
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.stream.ActorMaterializer
 import com.softwaremill.react.kafka.{ConsumerProperties, ReactiveKafka}
-import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.common.serialization.StringDeserializer
-
-import scala.collection.JavaConversions._
 
 /*
   =============================
+  REACTIVE SIMPLE ACTOR PIPELINE OVERVIEW
    1. Publish messages to Kafka Topic through command-line Producer
    2. Push messages to an Akka Actor from the Kafka Consumer (which polls from Kafka Topic)
-   3. Messages go through a actor transition and undergo transformation
+   3. Messages go through an actor pipeline and undergo transformation
    4. Final actor dumps output to console
-   Actor 1 ----> Actor 2 -----> Actor 3 -----> Dumps to console
+
+  KafkaTopic --> SimpleActor --> SimpleProcessor --> SimplePrinter --> Dumps to console
   =============================
 */
 object SimpleActorPipeline extends App {
