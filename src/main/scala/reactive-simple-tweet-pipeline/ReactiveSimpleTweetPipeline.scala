@@ -8,7 +8,7 @@ import org.reactivestreams.{ Publisher, Subscriber }
 
 /*
   =============================
-  REACTIVE PIPELINE DEMO OVERVIEW
+  REACTIVE SIMPLE TWEET PIPELINE OVERVIEW
     1. Use the Kafka Producer through the command line to send messages to the lowercase Kafka Topic
     2. ActorPublisher uses Kafka Consumer to read from Topic and push to First Stream
     3. First Stream capitalizes messages and transforms to StringProducerMessage
