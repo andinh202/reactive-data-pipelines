@@ -9,8 +9,8 @@ import org.reactivestreams.Publisher
 /*
   =============================
   REACTIVE SIMPLE ACTOR PIPELINE OVERVIEW
-   1. Publish messages to Kafka Topic through command-line Producer
-   2. Read messages using Kakfa Consumer encapsulated by ActorPublisher
+   1. Publish messages to Kafka Topic through command-line Kafka Producer
+   2. Read messages using Kakfa Consumer encapsulated by Actor Publisher
    3. Messages go through stream where they are capitalized and stored as SimpleMessage
    4. Console Sink dumps SimpleMessage to console
 
